@@ -17,18 +17,27 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
   const jwtToken = split[1]
   const userId = parseUserId(jwtToken)
   // TODO: Remove a TODO item by id
-  await docClient.delete({
-    TableName: todosTable,
-    Key: {
-        todoId,
-        userId
-    }
-  }).promise();
-  logger.info('deleting item ', todoId)
+  try{
+    await docClient.delete({
+      TableName: todosTable,
+      Key: {
+          todoId,
+          userId
+      }
+    }).promise();
+    logger.info(' TODO item Deleted!')
+
+  }
+  catch(e){
+      logger.info(`TODO Deletion Error ${e}`)
+
+      throw new Error(e);
+  }
   return{
-    statusCode: 200,
+    statusCode: 202,
     headers: {
-      'Access-Control-Allow-Origin':'*'
+      'Access-Control-Allow-Origin':'*',
+      'Access-Control-Allow-Credentials':true
     },
     body:""
   }

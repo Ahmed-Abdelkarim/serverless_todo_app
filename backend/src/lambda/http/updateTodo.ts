@@ -25,11 +25,16 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
       userId,
       todoId
     },
-    UpdateExpression: "set name = :name, dueDate = :dueDate, done = :done",
+    UpdateExpression: "set #name = :name, #dueDate = :dueDate, #done = :done",
     ExpressionAttributeValues:{
         ":name": updatedTodo.name,
         ":dueDate": updatedTodo.dueDate,
         ":done": updatedTodo.done
+    },
+    ExpressionAttributeNames: {
+      '#name': 'name',
+      '#dueDate': 'dueDate',
+      '#done': 'done'
     },
     ReturnValues:"UPDATED_NEW"
   }).promise()
@@ -39,7 +44,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
   return{
     statusCode: 200,
     headers: {
-      'Access-Control-Allow-Origin':'*'
+      'Access-Control-Allow-Origin':'*',
+      'Access-Control-Allow-Credentials': true
     },
     body:""
   }

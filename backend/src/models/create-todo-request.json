@@ -12,5 +12,5 @@
       }
     },
     "required": ["name", "dueDate"],
-    "additionalProperties": false
+    "additionalProperties": true
   }

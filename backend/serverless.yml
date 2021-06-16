@@ -9,7 +9,7 @@ plugins:
 
 provider:
   name: aws
-  runtime: nodejs13.x
+  runtime: nodejs12.x
 
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-2'}
@@ -17,25 +17,8 @@ provider:
   environment:
     TODOS_TABLE: todos-${self:provider.stage}
     TODOS_INDEX: todos-Index
-    TODOS_S3_BUCKET: serverless-todos-${self:provider.stage}
+    TODOS_S3_BUCKET: abdelhafez-serverless-todos-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
-
-
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:Scan 
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:DeleteItem
-        - dynamodb:Query
-        - dynamodb:UpdateItem
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-    - Effect: Allow
-      Action:
-        - s3:GetObject 
-        - s3:PutObject
-      Resource: 'arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*'
 
 custom:
   documentation:
@@ -47,7 +30,7 @@ custom:
     models:
       - name: todoRequest
         contentType: application/json
-        schema: ${file(models/create-todo-request.json)} 
+        schema: ${file(src/models/create-todo-request.json)} 
 
 functions:
 
@@ -63,6 +46,12 @@ functions:
           path: todos
           cors: true
           authorizer: Auth
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.TODOS_INDEX}
+  
 
   # TODO: Configure this function
   CreateTodo:
@@ -79,6 +68,12 @@ functions:
             description: Create a new todo
             requestModels:
               'application/json': todoRequest
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+  
 
   # TODO: Configure this function
   UpdateTodo:
@@ -88,6 +83,13 @@ functions:
           method: patch
           path: todos/{todoId}
           authorizer: Auth
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+  
 
   # TODO: Configure this function
   DeleteTodo:
@@ -97,6 +99,13 @@ functions:
           method: delete
           path: todos/{todoId}
           authorizer: Auth
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+    
 
   # TODO: Configure this function
   GenerateUploadUrl:
@@ -106,6 +115,14 @@ functions:
           method: post
           path: todos/{todoId}/attachment
           authorizer: Auth
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:GetObject 
+          - s3:PutObject
+        Resource: 'arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*'
+
 
 resources:
   Resources:
@@ -125,7 +142,7 @@ resources:
     RequestBodyValidator:
       Type: AWS::ApiGateway::RequestValidator
       Properties:
-        name: 'request-body-validator'
+        Name: 'request-body-validator'
         RestApiId:
           Ref: ApiGatewayRestApi
         ValidateRequestBody: true
@@ -136,7 +153,7 @@ resources:
       Properties:
         BucketName: ${self:provider.environment.TODOS_S3_BUCKET}
         CorsConfiguration:
-          CorsRule:
+          CorsRules:
             - 
               AllowedOrigins:
                 - '*'
@@ -177,7 +194,7 @@ resources:
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
-          - AttributeName: createdAt
+          - AttributeName: todoId
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:provider.environment.TODOS_TABLE}
@@ -186,7 +203,7 @@ resources:
             KeySchema:
               - AttributeName: userId
                 KeyType: HASH
-              - AttributeName: todoId
+              - AttributeName: createdAt
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL # What attributes will be copied to an index
